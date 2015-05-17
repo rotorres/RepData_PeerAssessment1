@@ -1,0 +1,153 @@
+---
+title: "Reproducible Research Assessment 1"
+author: "Rober Torres"
+output: html_document
+---
+
+#### Instaling and loading necessary packages to complete the assessment 
+
+```r
+# install.packages("plyr") ##commented for the markdown generation
+library(plyr)
+library(lattice)
+```
+
+### Loading and preprocessing the data
+
+
+```r
+#step 1
+actDS<-read.csv("activity.csv")
+#step 2
+actDS$date<-as.Date(actDS$date, "%Y-%m-%d")
+clearedActDS<-na.omit(actDS) # create new dataset without missing data
+```
+### What is mean total number of steps taken per day?
+
+```r
+#step 1
+totalSteps<-aggregate(steps ~ date, clearedActDS, sum)
+#step 2
+# png("plot1.png", width = 480, height = 480, units = "px", bg = "white") ##commented for the markdown generation
+hist(totalSteps$steps, main="Total steps per day", xlab="Steps per Day")
+```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
+
+```r
+# dev.off() ##commented for the markdown generation
+#step 3
+stepsMean<-mean(totalSteps$steps)
+stepsMedian<-median(totalSteps$steps)
+stepsMean 
+```
+
+```
+## [1] 10766.19
+```
+
+```r
+stepsMedian 
+```
+
+```
+## [1] 10765
+```
+
+### What is the average daily activity pattern?
+
+```r
+#step 1
+unqInterval<-unique(clearedActDS$interval)
+avgSteps<-tapply(clearedActDS$steps, clearedActDS$interval, mean)
+# png("plot2.png", width = 480, height = 480, units = "px", bg = "white") ##commented for the markdown generation
+plot(unqInterval,avgSteps,type="l",ylab="Average Steps per Interval", xlab="Interval", main="Average Daily Activity")
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+
+```r
+# dev.off() ##commented for the markdown generation
+
+#step 2
+maxsteps<-names(which.max(avgSteps))
+maxsteps
+```
+
+```
+## [1] "835"
+```
+
+### Imputing missing values
+
+```r
+#step 1
+rowsNA<-actDS[!complete.cases(actDS),]
+nrow(rowsNA) #Number of rows with missing values in the DataSet
+```
+
+```
+## [1] 2304
+```
+
+```r
+#step 2
+#fill with 0 steps, the intervals with no data collected
+
+#step 3
+cloneFromActDS<-actDS
+cloneFromActDS$steps[is.na(cloneFromActDS$steps)]<-0 
+
+#step 4
+cloneTotalSteps<-aggregate(steps ~ date, cloneFromActDS, sum)
+# png("plot3.png", width = 480, height = 480, units = "px", bg = "white") ##commented for the markdown generation
+hist(cloneTotalSteps$steps, xlab="Steps per Day", main="Total Steps per Day")
+```
+
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
+
+```r
+# dev.off() ##commented for the markdown generation
+stepsMean<-mean(cloneTotalSteps$steps)
+stepsMedian<-median(cloneTotalSteps$steps)
+stepsMean 
+```
+
+```
+## [1] 9354.23
+```
+
+```r
+stepsMedian
+```
+
+```
+## [1] 10395
+```
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+```r
+#step 1
+weekday<-as.POSIXlt(cloneFromActDS$date)$wday
+cloneFromActDS<-cbind(cloneFromActDS,weekday)
+cloneFromActDS$weekday<-as.character(gsub(1, "Weekday",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(2, "Weekday",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(3, "Weekday",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(4, "Weekday",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(5, "Weekday",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(0, "Weekend",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.character(gsub(6, "Weekend",cloneFromActDS$weekday))
+cloneFromActDS$weekday<-as.factor(cloneFromActDS$weekday)
+
+#step 2
+avgSteps <- ddply(cloneFromActDS, .(interval, weekday), summarize, steps = mean(steps))
+# png("plot4.png", width = 480, height = 480, units = "px", bg = "white") ##commented for the markdown generation
+xyplot(steps ~ interval | weekday, data = avgSteps, type = "l", layout = c(1, 2), xlab = "Interval", ylab = "Avg Steps", main = "Average steps per day")
+```
+
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png) 
+
+```r
+# dev.off() ##commented for the markdown generation
+```
